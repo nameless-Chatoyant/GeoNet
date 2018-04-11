@@ -241,6 +241,12 @@ class GeoNetModel(object):
 
         regularization_loss = tf.add_n(tf.losses.get_regularization_losses())
         self.total_loss = 0  # regularization_loss
+        self.rigid_warp_loss = rigid_warp_loss
+        self.disp_smooth_loss = disp_smooth_loss
+        self.flow_warp_loss = flow_warp_loss
+        self.flow_smooth_loss = flow_smooth_loss
+        self.flow_consistency_loss = flow_consistency_loss
+
         if opt.mode == 'train_rigid':
             self.total_loss += rigid_warp_loss + disp_smooth_loss
         if opt.mode == 'train_flow':
@@ -332,3 +338,35 @@ class GeoNetModel(object):
         # Assuming input image is float32
         image = (image + 1.)/2.
         return tf.image.convert_image_dtype(image, dtype=tf.uint8)
+
+    def collect_summaries(self):
+        opt = self.opt
+        tf.summary.scalar('total_loss', self.total_loss)
+        tf.summary.scalar('rigid_warp_loss', self.rigid_warp_loss)
+        tf.summary.scalar('disp_smooth_loss', self.disp_smooth_loss)
+        tf.summary.scalar('flow_warp_loss', self.flow_warp_loss)
+        tf.summary.scalar('flow_smooth_loss', self.flow_smooth_loss)
+        tf.summary.scalar('flow_consistency_loss', self.flow_consistency_loss)
+
+        for s in range(opt.num_scales):
+
+            # rigid flow
+            tf.summary.image('scale{}_fwd_rigid_flow'.format(s), self.fwd_rigid_flow_pyramid[s])
+            tf.summary.image('scale{}_bwd_rigid_flow'.format(s), self.bwd_rigid_flow_pyramid[s])
+            tf.summary.image('scale{}_fwd_rigid_warp'.format(s), self.fwd_rigid_warp_pyramid[s])
+            tf.summary.image('scale{}_bwd_rigid_warp'.format(s), self.bwd_rigid_warp_pyramid[s])
+            tf.summary.image('scale{}_fwd_rigid_error'.format(s), self.fwd_rigid_error_pyramid[s])
+            tf.summary.image('scale{}_bwd_rigid_error'.format(s), self.bwd_rigid_error_pyramid[s])
+
+            # full flow
+            tf.summary.image('scale{}_fwd_full_flow'.format(s), self.fwd_full_flow_pyramid[s])
+            tf.summary.image('scale{}_bwd_full_flow'.format(s), self.bwd_full_flow_pyramid[s])
+            tf.summary.image('scale{}_fwd_full_warp'.format(s), self.fwd_full_warp_pyramid[s])
+            tf.summary.image('scale{}_bwd_full_warp'.format(s), self.bwd_full_warp_pyramid[s])
+            tf.summary.image('scale{}_fwd_full_error'.format(s), self.fwd_full_error_pyramid[s])
+            tf.summary.image('scale{}_bwd_full_error'.format(s), self.bwd_full_error_pyramid[s])
+
+            # else
+            tf.summary.image('scale{}_fwd_flow_diff'.format(s), self.fwd_flow_diff_pyramid[s])
+            tf.summary.image('scale{}_bwd_flow_diff'.format(s), self.bwd_flow_diff_pyramid[s])
+            tf.summary.image('scale{}_bwd2fwd_flow'.format(s), self.bwd2fwd_flow_pyramid[s])
