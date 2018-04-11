@@ -251,6 +251,7 @@ class GeoNetModel(object):
             self.total_loss += rigid_warp_loss + disp_smooth_loss
         if opt.mode == 'train_flow':
             self.total_loss += flow_warp_loss + flow_smooth_loss + flow_consistency_loss
+        self.collect_summaries()
 
     def SSIM(self, x, y):
         C1 = 0.01 ** 2
