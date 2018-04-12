@@ -34,13 +34,13 @@ class cityscapes_loader(object):
         print('Total frames collected: %d' % self.num_frames)
         
     def collect_frames(self, split):
-        img_dir = self.dataset_dir + '/leftImg8bit_sequence/' + split + '/'
+        img_dir = self.dataset_dir + '/rightImg8bit_sequence/' + split + '/'
         city_list = os.listdir(img_dir)
         frames = []
         for city in city_list:
             img_files = glob(img_dir + city + '/*.png')
             for f in img_files:
-                frame_id = os.path.basename(f).split('leftImg8bit')[0]
+                frame_id = os.path.basename(f).split('rightImg8bit')[0]
                 frames.append(frame_id)
         return frames
 
@@ -73,8 +73,8 @@ class cityscapes_loader(object):
         for o in range(-half_offset, half_offset + 1, self.sample_gap):
             curr_local_frame_id = '%.6d' % (int(tgt_local_frame_id) + o)
             curr_frame_id = '%s_%s_%s_' % (city, snippet_id, curr_local_frame_id)
-            curr_image_file = os.path.join(self.dataset_dir, 'leftImg8bit_sequence', 
-                                self.split, city, curr_frame_id + 'leftImg8bit.png')
+            curr_image_file = os.path.join(self.dataset_dir, 'rightImg8bit_sequence', 
+                                self.split, city, curr_frame_id + 'rightImg8bit.png')
             if not os.path.exists(curr_image_file):
                 return False
         return True
@@ -86,8 +86,8 @@ class cityscapes_loader(object):
         for o in range(-half_offset, half_offset + 1, self.sample_gap):
             curr_local_frame_id = '%.6d' % (int(tgt_local_frame_id) + o)
             curr_frame_id = '%s_%s_%s_' % (city, snippet_id, curr_local_frame_id)
-            curr_image_file = os.path.join(self.dataset_dir, 'leftImg8bit_sequence', 
-                                self.split, city, curr_frame_id + 'leftImg8bit.png')
+            curr_image_file = os.path.join(self.dataset_dir, 'rightImg8bit_sequence', 
+                                self.split, city, curr_frame_id + 'rightImg8bit.png')
             curr_img = scipy.misc.imread(curr_image_file)
             raw_shape = np.copy(curr_img.shape)
             if o == 0:
