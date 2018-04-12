@@ -22,6 +22,7 @@ class GeoNetModel(object):
             return
 
         self.build_losses()
+        self.collect_summaries()
 
     def build_model(self):
         opt = self.opt
@@ -69,7 +70,7 @@ class GeoNetModel(object):
         if opt.scale_normalize:
             # As proposed in https://arxiv.org/abs/1712.00175, this can 
             # bring improvement in depth estimation, but not included in our paper.
-            self.pred_disp = [self.spatial_normalize(disp) for disp in self.pred_disp]
+            self.pred_dipred_dispsp = [self.spatial_normalize(disp) for disp in self.pred_disp]
 
         self.pred_depth = [1./d for d in self.pred_disp]
 
@@ -251,7 +252,7 @@ class GeoNetModel(object):
             self.total_loss += rigid_warp_loss + disp_smooth_loss
         if opt.mode == 'train_flow':
             self.total_loss += flow_warp_loss + flow_smooth_loss + flow_consistency_loss
-        self.collect_summaries()
+        
 
     def SSIM(self, x, y):
         C1 = 0.01 ** 2
@@ -349,25 +350,42 @@ class GeoNetModel(object):
         tf.summary.scalar('flow_smooth_loss', self.flow_smooth_loss)
         tf.summary.scalar('flow_consistency_loss', self.flow_consistency_loss)
 
+
         for s in range(opt.num_scales):
 
-            # rigid flow
-            tf.summary.image('scale{}_fwd_rigid_flow'.format(s), self.fwd_rigid_flow_pyramid[s])
-            tf.summary.image('scale{}_bwd_rigid_flow'.format(s), self.bwd_rigid_flow_pyramid[s])
-            tf.summary.image('scale{}_fwd_rigid_warp'.format(s), self.fwd_rigid_warp_pyramid[s])
-            tf.summary.image('scale{}_bwd_rigid_warp'.format(s), self.bwd_rigid_warp_pyramid[s])
-            tf.summary.image('scale{}_fwd_rigid_error'.format(s), self.fwd_rigid_error_pyramid[s])
-            tf.summary.image('scale{}_bwd_rigid_error'.format(s), self.bwd_rigid_error_pyramid[s])
+            # Disparity & Depth Outputs
+            if opt.add_dispnet:
+                tf.summary.image('scale{}_disp', self.pred_disp[s])
+                tf.summary.image('scale{}_depth', self.pred_depth[s])
 
-            # full flow
-            tf.summary.image('scale{}_fwd_full_flow'.format(s), self.fwd_full_flow_pyramid[s])
-            tf.summary.image('scale{}_bwd_full_flow'.format(s), self.bwd_full_flow_pyramid[s])
-            tf.summary.image('scale{}_fwd_full_warp'.format(s), self.fwd_full_warp_pyramid[s])
-            tf.summary.image('scale{}_bwd_full_warp'.format(s), self.bwd_full_warp_pyramid[s])
-            tf.summary.image('scale{}_fwd_full_error'.format(s), self.fwd_full_error_pyramid[s])
-            tf.summary.image('scale{}_bwd_full_error'.format(s), self.bwd_full_error_pyramid[s])
+            # Pose Outputs (TODO: how to show the matrix?)
+            if opt.add_posenet:
+                pass
 
-            # else
-            tf.summary.image('scale{}_fwd_flow_diff'.format(s), self.fwd_flow_diff_pyramid[s])
-            tf.summary.image('scale{}_bwd_flow_diff'.format(s), self.bwd_flow_diff_pyramid[s])
-            tf.summary.image('scale{}_bwd2fwd_flow'.format(s), self.bwd2fwd_flow_pyramid[s])
+            # Rigid Flow Outputs
+            if opt.add_dispnet and opt.add_posenet:
+                tf.summary.image('scale{}_fwd_rigid_flow'.format(s), self.fwd_rigid_flow_pyramid[s])
+                tf.summary.image('scale{}_bwd_rigid_flow'.format(s), self.bwd_rigid_flow_pyramid[s])
+                tf.summary.image('scale{}_fwd_rigid_warp'.format(s), self.fwd_rigid_warp_pyramid[s])
+                tf.summary.image('scale{}_bwd_rigid_warp'.format(s), self.bwd_rigid_warp_pyramid[s])
+                tf.summary.image('scale{}_fwd_rigid_error'.format(s), self.fwd_rigid_error_pyramid[s])
+                tf.summary.image('scale{}_bwd_rigid_error'.format(s), self.bwd_rigid_error_pyramid[s])
+            
+            # Full Flow Outputs
+            if opt.add_flownet:
+                tf.summary.image('scale{}_fwd_full_flow'.format(s), self.fwd_full_flow_pyramid[s])
+                tf.summary.image('scale{}_bwd_full_flow'.format(s), self.bwd_full_flow_pyramid[s])
+
+                # with groundtruth
+                if opt.mode == 'train_flow':
+                    tf.summary.image('scale{}_fwd_full_warp'.format(s), self.fwd_full_warp_pyramid[s])
+                    tf.summary.image('scale{}_bwd_full_warp'.format(s), self.bwd_full_warp_pyramid[s])
+                    tf.summary.image('scale{}_fwd_full_error'.format(s), self.fwd_full_error_pyramid[s])
+                    tf.summary.image('scale{}_bwd_full_error'.format(s), self.bwd_full_error_pyramid[s])
+
+                    # Forward-Backward Consistency Check Outputs
+                    if opt.flow_consistency_weight > 0:
+                        tf.summary.image('scale{}_bwd2fwd_flow'.format(s), self.bwd2fwd_flow_pyramid[s])
+                        tf.summary.image('scale{}_fwd2bwd_flow'.format(s), self.fwd2bwd_flow_pyramid[s])
+                        tf.summary.image('scale{}_fwd_flow_diff'.format(s), self.fwd_flow_diff_pyramid[s])
+                        tf.summary.image('scale{}_bwd_flow_diff'.format(s), self.bwd_flow_diff_pyramid[s])
